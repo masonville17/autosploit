@@ -57,13 +57,13 @@ AUX_KALI_PACKAGES="nmap net-tools apt-transport-https ca-certificates curl gnupg
   xsser wfuzz ffuf davtest nikto sqlite3 jq net-tools tcpdump wireshark tshark evil-winrm crackmapexec powersploit bloodhound responder"
 BUILD_IMAGE=true
 DOCKER_COMPOSE_UP_ARGS="-d --remove-orphans"
-# DOCKER_COMPOSE_VERB="docker compose"
+DOCKER_COMPOSE_VERB="docker compose"
 # PATHS -- local
 LOCAL_USER_SCRIPTS_FOLDER="$PROJECT_FOLDER/user_scripts"
 ENV_FILE="$PROJECT_FOLDER/$PROJECT.env"
 COMPOSE_FILE="$PROJECT_FOLDER/docker-compose.yml"
 LOCAL_MSF_HOST_LOGFILE_PATH="$PROJECT_FOLDER/$PROJECT.log"
-touch $LOCAL_MSF_HOST_LOGFILE_PATH
+rm -rf "$PROJECT_FOLDER" && mkdir -p "$LOCAL_USER_SCRIPTS_FOLDER" && touch $LOCAL_MSF_HOST_LOGFILE_PATH
 LOCAL_DATABASE_CONFIG="$PROJECT_FOLDER/database.yml"
 LOCAL_RESULT_FILE="$PROJECT_FOLDER/result.json"
 # LOGGING
