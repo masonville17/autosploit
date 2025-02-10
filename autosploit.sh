@@ -255,6 +255,8 @@ services:
       - "$POSTGRES_SOCKET_DIR:$POSTGRES_SOCKET_DIR"
       - "$POSTGRES_VOLUME_NAME:$POSTGRES_DATA_DIR"
     env_file: "$ENV_FILE"
+    ports:
+      - "$POSTGRES_PORT:$POSTGRES_PORT"
     network_mode: bridge
     restart: "$CONTAINER_RESTART"
 
@@ -272,6 +274,7 @@ MSF_DB=$MSF_DB
 MSF_CONFIG_FOLDER=$MSF_CONFIG_FOLDER
 MSF_DATABASE_USER=$MSF_DATABASE_USER
 MSF_DATABASE_URL=$MSF_DATABASE_URL
+MSF_HOST_LOGFILE_PATH=$MSF_HOST_LOGFILE_PATH
 MSF_CONFIG_FOLDER=$MSF_CONFIG_FOLDER
 MSF_DATABASE_CONFIG=$MSF_DATABASE_CONFIG
 MSF_RESOURCE_TEMPATE=$MSF_RESOURCE_TEMPATE
@@ -290,6 +293,7 @@ POSTGRES_SOCKET_DIR=$POSTGRES_SOCKET_DIR
 POSTGRES_DATA_DIR=$POSTGRES_DATA_DIR
 # #$Project Config
 NONINTERACTIVE=$NONINTERACTIVE
+LOGFILE_MAX_LINES=$LOGFILE_MAX_LINES
 EOF
 
 print_and_log "Generating MSF resource template at $LOCAL_USER_SCRIPTS_FOLDER/$MSF_RESOURCE_TEMPATE"
@@ -520,13 +524,13 @@ cat << EOF > "./msfstart.sh"
 set -a
 print_and_log "Starting MSF Container @$(date +%s)"
 function sanitize_hostname() {
-  echo "\${1:-msf}" | tr '_' '-' | sed -E 's/[^a-zA-Z0-9.-]//g; s/^-+|-+$//g' | awk -F'.' '{for (i=1; i<=NF; i++) if (length($i) > 63) $i = substr($i, 1, 63); print $0;}' | cut -c1-255 | tr '[:upper:]' '[:lower:]'
+  echo "\${1:-msf}" | tr '_' '-' | sed -E 's/[^a-zA-Z0-9.-]//g; s/^-+|-+$//g' | awk -F'.' '{for (i=1; i<=NF; i++) if (length(\$i) > 63) \$i = substr(\$i, 1, 63); print \$0;}' | cut -c1-255 | tr '[:upper:]' '[:lower:]'
 }
 print_and_log() {
     local message="\$1"
-    echo "\$message"    
-    echo "$(date) - \$HOST - \$message" >> "\$MSF_HOST_LOGFILE_PATH"
-    if [ $(wc -l < "\$MSF_HOST_LOGFILE_PATH") -gt $LOGFILE_MAX_LINES ]; then
+    echo "\$message"
+    echo "\$(date) - \$HOST - \$message" >> "\$MSF_HOST_LOGFILE_PATH"
+    if [ \$(wc -l < "\$MSF_HOST_LOGFILE_PATH") -gt \$LOGFILE_MAX_LINES ]; then
         tail -n \$LOGFILE_MAX_LINES "\$MSF_HOST_LOGFILE_PATH" > "\$MSF_HOST_LOGFILE_PATH.tmp" && mv "\$MSF_HOST_LOGFILE_PATH.tmp" "\$MSF_HOST_LOGFILE_PATH"
     fi
 }
