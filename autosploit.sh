@@ -1,6 +1,6 @@
 #!/bin/bash
 # from_scratch.sh -
-# Usage: ./from_scratch.sh [SCAN_TARGET] [MSF_WEB_PORT]
+# Usage: ./from_scratch.sh [SCAN_TARGET (defaults to external-most ipv4)] [MSF_WEB_PORT]
 set -e
 PROJECT="mobile_sploit"
 PROJECT_VERSION="0.1.6"
