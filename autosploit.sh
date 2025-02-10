@@ -550,13 +550,6 @@ export PASSWORDLESS_POSTGRES=\${PASSWORDLESS_POSTGRES:-true}
 export POSTGRES_DB=\${POSTGRES_DB:-msf}
 export POSTGRES_TIMEOUT=\${POSTGRES_TIMEOUT:-60}
 export POSTGRES_SOCKET_DIR="\${POSTGRES_SOCKET_DIR:-'/var/run/postgresql'}"
-if [[ -S "\$POSTGRES_SOCKET_DIR/.s.PGSQL.5432" ]]; then
-  POSTGRES_HOST="\$POSTGRES_SOCKET_DIR"
-  print_and_log "Postgres Users: \$MSF_DB_USER and \$POSTGRES_USER"
-  print_and_log "Socket for postgres found at \$POSTGRES_SOCKET_DIR, assuming local connection."
-else
-  print_and_log "Socket for postgres not found, assuming TCP/IP connection."
-fi
 if [[ "\$PASSWORDLESS_POSTGRES" == "true" ]]; then
     export POSTGRES_HOST=localhost
     export POSTGRES_HOST_AUTH_METHOD=trust
