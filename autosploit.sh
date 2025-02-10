@@ -4,6 +4,7 @@
 set -e
 PROJECT="mobile_sploit"
 PROJECT_VERSION="0.1.4"
+PROJECT_FOLDER="$HOME/$PROJECT"
 echo "Whoa, What's that? It almost glanced me! It was $PROJECT:$PROJECT_VERSION..."
 SCAN_TARGET=${1:-$(curl -s https://ipinfo.io/ip)}
 
@@ -48,17 +49,14 @@ AUX_NTP_PORT=123
 
 SCAN_NETBIOS=true
 SCAN_OTHER=true
-#PROJECT_FOLDER="$HOME/$PROJECT"
 ##########################################################################
-PROJECT_FOLDER="/home/mason/Documents/GitHub/MiniSploit/auto"
 AUX_KALI_PACKAGES="nmap net-tools apt-transport-https ca-certificates curl gnupg-agent software-properties-common libpq5 postgresql-client \
   postgresql postgresql-contrib libpq-dev libpcap-dev libsqlite3-dev zlib1g-dev libxml2-dev libxslt1-dev libffi-dev ruby-dev \
   git curl wget build-essential nmap dnsrecon nmap masscan whatweb wafw00f sslscan gobuster amass sublist3r enum4linux \
   smbclient smbmap exploitdb shellter veil mingw-w64 wine python3-impacket hydra john hashcat patator medusa seclists sqlmap \
   xsser wfuzz ffuf davtest nikto sqlite3 jq net-tools tcpdump wireshark tshark evil-winrm crackmapexec powersploit bloodhound responder"
 BUILD_IMAGE=true
-DOCKER_COMPOSE_UP_ARGS="--remove-orphans"
-# DOCKER_COMPOSE_UP_ARGS="-d --remove-orphans"
+DOCKER_COMPOSE_UP_ARGS="-d --remove-orphans"
 DOCKER_COMPOSE_VERB="docker compose"
 # PATHS -- local
 LOCAL_USER_SCRIPTS_FOLDER="$PROJECT_FOLDER/user_scripts"
