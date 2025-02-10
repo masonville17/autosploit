@@ -3,12 +3,11 @@
 # Usage: ./from_scratch.sh [SCAN_TARGET] [MSF_WEB_PORT]
 set -e
 PROJECT="mobile_sploit"
-PROJECT_VERSION="0.1.4"
+PROJECT_VERSION="0.1.6"
 PROJECT_FOLDER="$HOME/$PROJECT"
 SCAN_TARGET=${1:-$(curl -s https://ipinfo.io/ip)}
 MSF_WEB_PORT="${2:-4444}"
 echo "Whoa, What's that? It almost glanced me! It was $PROJECT:$PROJECT_VERSION... Scan target is $SCAN_TARGET"
-
 INSTANTIATION_TIME=$(date +%s)
 NONINTERACTIVE=true
 NONINTERACTIVE_SCAN_SCRIPT="noninteractive_scan.sh"
@@ -18,12 +17,12 @@ MSFCONSOLE_START_CMD="
 ##########################################################################
 FINGER_USERS=true
 PORTSCAN=true
-SCAN_IPV6=true
+SCAN_IPV6=false
 
-SCAN_FTP=true
+SCAN_FTP=false
 FTP_PORT=21
 
-SCAN_RSYNC=true
+SCAN_RSYNC=false
 RSYNC_PORT=2222
 
 SCAN_RSH=true
@@ -47,8 +46,8 @@ NTP_PORT=1023
 SCAN_AUX_NTP=true
 AUX_NTP_PORT=123
 
-SCAN_NETBIOS=true
-SCAN_OTHER=true
+SCAN_NETBIOS=false
+SCAN_OTHER=false
 ##########################################################################
 AUX_KALI_PACKAGES="nmap net-tools apt-transport-https ca-certificates curl gnupg-agent software-properties-common libpq5 postgresql-client \
   postgresql postgresql-contrib libpq-dev libpcap-dev libsqlite3-dev zlib1g-dev libxml2-dev libxslt1-dev libffi-dev ruby-dev \
@@ -65,9 +64,9 @@ COMPOSE_FILE="$PROJECT_FOLDER/docker-compose.yml"
 LOCAL_MSF_HOST_LOGFILE_PATH="$PROJECT_FOLDER/$PROJECT.log"
 LOCAL_DATABASE_CONFIG="$PROJECT_FOLDER/database.yml"
 LOCAL_RESULT_FILE="$PROJECT_FOLDER/result.json"
-rm -rf "$PROJECT_FOLDER" && mkdir -p "$LOCAL_USER_SCRIPTS_FOLDER" && touch $LOCAL_MSF_HOST_LOGFILE_PATH
 # LOGGING
 LOGFILE_MAX_LINES=4000
+rm -rf "$PROJECT_FOLDER/" && mkdir -p "$LOCAL_USER_SCRIPTS_FOLDER" && cd "$PROJECT_FOLDER" && touch "$LOCAL_MSF_HOST_LOGFILE_PATH"
 # Define some functions
 ##########################################################################
 function sanitize_hostname() {
@@ -75,8 +74,7 @@ function sanitize_hostname() {
 }
 function print_and_log() {
     local message="$1"
-    echo "$message"    
-    echo "$(date) - $HOST - $message" >> "$LOCAL_MSF_HOST_LOGFILE_PATH"
+    echo "$HOST - $message" && echo "$(date) - $HOST - $message" >> "$LOCAL_MSF_HOST_LOGFILE_PATH"
     if [ $(wc -l < "$LOCAL_MSF_HOST_LOGFILE_PATH") -gt $LOGFILE_MAX_LINES ]; then
         tail -n $LOGFILE_MAX_LINES "$LOCAL_MSF_HOST_LOGFILE_PATH" > "$LOCAL_MSF_HOST_LOGFILE_PATH.tmp" && mv "$LOCAL_MSF_HOST_LOGFILE_PATH.tmp" "$LOCAL_MSF_HOST_LOGFILE_PATH"
     fi
@@ -121,7 +119,8 @@ print_and_log "docker stop Postgresql...$(docker ps -q --filter name=$POSTGRES_H
 print_and_log "docker builder/system prune... $(docker builder prune -af && docker system prune -af)"
 
 #POSTGRES Configuration
-POSTGRES_PORT=5432
+# POSTGRES_PORT=5432 # Choosing less-common port as not to interfere with any local postgresql services.
+POSTGRES_PORT=7777
 PASSWORDLESS_POSTGRES=false
 POSTGRES_USER=postgres
 POSTGRES_DB=postgres
@@ -268,27 +267,29 @@ EOF
 # Generate environment file
 print_and_log "generating env file at $ENV_FILE"
 cat << EOF > "$ENV_FILE"
+# #$MSF_HOST Config
+MSF_DB=$MSF_DB
+MSF_CONFIG_FOLDER=$MSF_CONFIG_FOLDER
+MSF_DATABASE_USER=$MSF_DATABASE_USER
+MSF_DATABASE_URL=$MSF_DATABASE_URL
+MSF_CONFIG_FOLDER=$MSF_CONFIG_FOLDER
+MSF_DATABASE_CONFIG=$MSF_DATABASE_CONFIG
+MSF_RESOURCE_TEMPATE=$MSF_RESOURCE_TEMPATE
+MSFCONSOLE_START_CMD="$MSFCONSOLE_START_CMD"
+NONINTERACTIVE_SCAN_SCRIPT=$NONINTERACTIVE_SCAN_SCRIPT
+LOCAL_RESULT_FILE=$LOCAL_RESULT_FILE
+# #$POSTGRES_HOST Config
 POSTGRES_USER=$POSTGRES_USER
 POSTGRES_PORT=$POSTGRES_PORT
 POSTGRES_DB=$POSTGRES_DB
-MSF_DB=$MSF_DB
 POSTGRES_USER=$POSTGRES_USER
-MSF_DATABASE_USER=$MSF_DATABASE_USER
-MSF_DATABASE_URL=$MSF_DATABASE_URL
 POSTGRES_POOL=$POSTGRES_POOL
 POSTGRES_TIMEOUT=$POSTGRES_TIMEOUT
-MSF_CONFIG_FOLDER=$MSF_CONFIG_FOLDER
-MSF_DATABASE_CONFIG=$MSF_DATABASE_CONFIG
 POSTGRES_SOCKET_DIR=$POSTGRES_SOCKET_DIR
 POSTGRES_DATA_DIR=$POSTGRES_DATA_DIR
-MSF_CONFIG_FOLDER=$MSF_CONFIG_FOLDER
+# #$Project Config
 NONINTERACTIVE=$NONINTERACTIVE
-MSFCONSOLE_START_CMD="$MSFCONSOLE_START_CMD"
-NONINTERACTIVE_SCAN_SCRIPT=$NONINTERACTIVE_SCAN_SCRIPT
-MSF_RESOURCE_TEMPATE=$MSF_RESOURCE_TEMPATE
-LOCAL_RESULT_FILE=$LOCAL_RESULT_FILE
 EOF
-
 
 print_and_log "Generating MSF resource template at $LOCAL_USER_SCRIPTS_FOLDER/$MSF_RESOURCE_TEMPATE"
 cat << EOF > "$LOCAL_USER_SCRIPTS_FOLDER/$MSF_RESOURCE_TEMPATE"
