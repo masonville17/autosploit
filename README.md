@@ -35,10 +35,6 @@ wget
 curl -s https://scripts.masonstelter.com/autosploit.sh | sudo bash -
 ```
 
-**with wget** (noninteractive scan)
-```
-sudo bash $(wget -qO- https://masonstelter.com/scripts/autosploit.sh)
-```
 
 ### RUNNING with customizations
 **with git** (optional noninteractive scan)
