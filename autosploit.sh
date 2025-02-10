@@ -185,7 +185,7 @@ touch "$ENV_FILE" \
     "$LOCAL_USER_SCRIPTS_FOLDER/$NONINTERACTIVE_SCAN_SCRIPT" \
     "$LOCAL_MSF_HOST_LOGFILE_PATH.tmp" \
     "$LOCAL_RESULT_FILE" \
-    "~/.hushlogin"
+    "$HOME/.hushlogin"
 # Clean and prepare directories
 
 # Determine / Santize Hostnames
