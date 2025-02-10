@@ -5,10 +5,10 @@ set -e
 PROJECT="mobile_sploit"
 PROJECT_VERSION="0.1.4"
 PROJECT_FOLDER="$HOME/$PROJECT"
-echo "Whoa, What's that? It almost glanced me! It was $PROJECT:$PROJECT_VERSION..."
 SCAN_TARGET=${1:-$(curl -s https://ipinfo.io/ip)}
-
 MSF_WEB_PORT="${2:-4444}"
+echo "Whoa, What's that? It almost glanced me! It was $PROJECT:$PROJECT_VERSION... Scan target is $SCAN_TARGET"
+
 INSTANTIATION_TIME=$(date +%s)
 NONINTERACTIVE=true
 NONINTERACTIVE_SCAN_SCRIPT="noninteractive_scan.sh"
@@ -57,15 +57,15 @@ AUX_KALI_PACKAGES="nmap net-tools apt-transport-https ca-certificates curl gnupg
   xsser wfuzz ffuf davtest nikto sqlite3 jq net-tools tcpdump wireshark tshark evil-winrm crackmapexec powersploit bloodhound responder"
 BUILD_IMAGE=true
 DOCKER_COMPOSE_UP_ARGS="-d --remove-orphans"
-DOCKER_COMPOSE_VERB="docker compose"
+# DOCKER_COMPOSE_VERB="docker compose" # Leave unset to find automatically.
 # PATHS -- local
 LOCAL_USER_SCRIPTS_FOLDER="$PROJECT_FOLDER/user_scripts"
 ENV_FILE="$PROJECT_FOLDER/$PROJECT.env"
 COMPOSE_FILE="$PROJECT_FOLDER/docker-compose.yml"
 LOCAL_MSF_HOST_LOGFILE_PATH="$PROJECT_FOLDER/$PROJECT.log"
-rm -rf "$PROJECT_FOLDER" && mkdir -p "$LOCAL_USER_SCRIPTS_FOLDER" && touch $LOCAL_MSF_HOST_LOGFILE_PATH
 LOCAL_DATABASE_CONFIG="$PROJECT_FOLDER/database.yml"
 LOCAL_RESULT_FILE="$PROJECT_FOLDER/result.json"
+rm -rf "$PROJECT_FOLDER" && mkdir -p "$LOCAL_USER_SCRIPTS_FOLDER" && touch $LOCAL_MSF_HOST_LOGFILE_PATH
 # LOGGING
 LOGFILE_MAX_LINES=4000
 # Define some functions
@@ -178,17 +178,14 @@ fi
 print_and_log "Ensuring local paths and files..."
 REQUIRED_LOCAL_PATHS=("$PROJECT_FOLDER" "$LOCAL_USER_SCRIPTS_FOLDER" "$ENV_FILE" "$COMPOSE_FILE" "$LOCAL_MSF_HOST_LOGFILE_PATH" "$LOCAL_DATABASE_CONFIG")
 check_required_vars $REQUIRED_LOCAL_PATHS || exit 1
-rm -rf "$PROJECT_FOLDER" && \
-  mkdir -p "$LOCAL_USER_SCRIPTS_FOLDER" && \
-  cd "$PROJECT_FOLDER" && \
-      touch "$ENV_FILE" \
-            "$COMPOSE_FILE" \
-            "$LOCAL_MSF_HOST_LOGFILE_PATH" \
-            "$LOCAL_USER_SCRIPTS_FOLDER/$MSF_RESOURCE_TEMPATE" \
-            "$LOCAL_USER_SCRIPTS_FOLDER/$NONINTERACTIVE_SCAN_SCRIPT" \
-            "$LOCAL_MSF_HOST_LOGFILE_PATH.tmp" \
-            "$LOCAL_RESULT_FILE"
-            # "$LOCAL_DATABASE_CONFIG" 
+
+touch "$ENV_FILE" \
+    "$COMPOSE_FILE" \
+    "$LOCAL_MSF_HOST_LOGFILE_PATH" \
+    "$LOCAL_USER_SCRIPTS_FOLDER/$MSF_RESOURCE_TEMPATE" \
+    "$LOCAL_USER_SCRIPTS_FOLDER/$NONINTERACTIVE_SCAN_SCRIPT" \
+    "$LOCAL_MSF_HOST_LOGFILE_PATH.tmp" \
+    "$LOCAL_RESULT_FILE"
 # Clean and prepare directories
 
 # Determine / Santize Hostnames
@@ -208,6 +205,7 @@ print_and_log "Generating Dockerfile at $PROJECT_FOLDER/Dockerfile"
 cat << EOF > "$PROJECT_FOLDER/Dockerfile"
 FROM kalilinux/kali-rolling
 COPY msfstart.sh .
+ENV DEBIAN_FRONTEND=noninteractive
 RUN apt update && apt -y upgrade && \
 	apt install -y  metasploit-framework $AUX_KALI_PACKAGES && \
   mkdir -p "$MSF_CONFIG_FOLDER" "$LOCAL_USER_SCRIPTS_FOLDER" \
