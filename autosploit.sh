@@ -109,6 +109,7 @@ check_required_vars() {
 print_and_log "Determining Hostnames and config..."
 MSF_HOST="$(sanitize_hostname $PROJECT)"
 MSF_DB="msf"
+MSF_NETWORK="$MSF_HOST-network"
 POSTGRES_HOST="$MSF_HOST-db"
 print_and_log "MSF_HOST: $MSF_HOST, MSF_DB: $MSF_DB, POSTGRES_HOST: $POSTGRES_HOST"
 
@@ -124,7 +125,6 @@ POSTGRES_PORT=7777
 PASSWORDLESS_POSTGRES=false
 POSTGRES_USER=postgres
 POSTGRES_DB=postgres
-POSTGRES_PASSWORD=${PGPASSWORD:-"${POSTGRES_DB}password"}
 POSTGRES_POOL=10
 POSTGRES_TIMEOUT=20
 POSTGRES_DATA_DIR="/var/lib/postgresql/data"
@@ -145,7 +145,7 @@ MSF_DATABASE_CONFIG="$MSF_CONFIG_FOLDER/database.yml"
 MSF_IMAGE_TAG="STANDALONE-latest"
 MSF_DATABASE="msf"
 MSF_DATABASE_USER="msf"
-MSF_DATABASE_URL="postgres://$MSF_DATABASE_USER:$MSF_PASSWORD@${POSTGRES_SOCKET_DIR:-$POSTGRES_HOST}:$POSTGRES_PORT/$MSF_DATABASE"
+MSF_DATABASE_URL="postgres://$MSF_DATABASE_USER@${POSTGRES_SOCKET_DIR:-$POSTGRES_HOST}:$POSTGRES_PORT/$MSF_DATABASE"
 
 SETUP_TIME=$(date +%s)
 #BEGIN SETUP
@@ -184,7 +184,8 @@ touch "$ENV_FILE" \
     "$LOCAL_USER_SCRIPTS_FOLDER/$MSF_RESOURCE_TEMPATE" \
     "$LOCAL_USER_SCRIPTS_FOLDER/$NONINTERACTIVE_SCAN_SCRIPT" \
     "$LOCAL_MSF_HOST_LOGFILE_PATH.tmp" \
-    "$LOCAL_RESULT_FILE"
+    "$LOCAL_RESULT_FILE" \
+    "~/.hushlogin"
 # Clean and prepare directories
 
 # Determine / Santize Hostnames
@@ -229,7 +230,8 @@ services:
       - NET_RAW
       - SYS_ADMIN
     env_file: "$ENV_FILE"
-    network_mode: bridge
+    networks:
+      - $MSF_NETWORK
     volumes:
       - "$POSTGRES_SOCKET_DIR:$POSTGRES_SOCKET_DIR"
       - "$POSTGRES_VOLUME_NAME:$POSTGRES_DATA_DIR"
@@ -257,13 +259,17 @@ services:
     env_file: "$ENV_FILE"
     ports:
       - "$POSTGRES_PORT:$POSTGRES_PORT"
-    network_mode: bridge
+    networks:
+      - $MSF_NETWORK
     restart: "$CONTAINER_RESTART"
 
 volumes:
   $POSTGRES_VOLUME_NAME:
     driver: local
   $MSF_VOLUME_NAME:
+networks:
+  $MSF_NETWORK:
+    driver: bridge
 EOF
 
 # Generate environment file
@@ -550,22 +556,36 @@ export PASSWORDLESS_POSTGRES=\${PASSWORDLESS_POSTGRES:-true}
 export POSTGRES_DB=\${POSTGRES_DB:-msf}
 export POSTGRES_TIMEOUT=\${POSTGRES_TIMEOUT:-60}
 export POSTGRES_SOCKET_DIR="\${POSTGRES_SOCKET_DIR:-'/var/run/postgresql'}"
-if [[ "\$PASSWORDLESS_POSTGRES" == "true" ]]; then
-    export POSTGRES_HOST=localhost
-    export POSTGRES_HOST_AUTH_METHOD=trust
-    export POSTGRES_PASSWORD=
-    export PGPASSWORD=
+
+if [[ -S "\$POSTGRES_SOCKET_DIR/.s.PGSQL.5432" ]]; then
+  print_and_log "Socket for postgres found at \$POSTGRES_SOCKET_DIR, assuming local connection."
 else
-    export POSTGRES_USER="postgres"
-    export POSTGRES_PASSWORD="\$POSTGRES_PASSWORD"
-    export PGPASSWORD="\$POSTGRES_PASSWORD"
+  print_and_log "Socket for postgres not found, assuming TCP/IP connection."
 fi
+
 until psql -U postgres -d postgres -c "SELECT 1;" >/dev/null 2>&1; do
   print_and_log "[-] PostgreSQL is unavailable @- postgres://\$POSTGRES_USER:{password_redacted}@\$POSTGRES_HOST:\$POSTGRES_PORT/\$POSTGRES_DB"
   sleep 5
 done
+
+if [[ "\$PASSWORDLESS_POSTGRES" == "true" ]]; then
+    export POSTGRES_HOST_AUTH_METHOD=trust
+    export POSTGRES_PASSWORD=
+    export PGPASSWORD=
+    export MSF_DATABASE_URL="postgres://\$MSF_DATABASE_USER@\$POSTGRES_HOST:\$POSTGRES_PORT/\$MSF_DATABASE"
+else
+    export POSTGRES_USER="postgres"
+    export POSTGRES_PASSWORD="\$POSTGRES_PASSWORD"
+    export PGPASSWORD="\$POSTGRES_PASSWORD"
+    export MSF_DATABASE_URL="postgres://\$MSF_DATABASE_USER:\$POSTGRES_PASSWORD@\$POSTGRES_HOST:\$POSTGRES_PORT/\$MSF_DATABASE"
+fi
+export PGPORT=\$POSTGRES_PORT
+export POSTGRES_DB=\$MSF_DB
+export POSTGRES_USER=\$MSF_DATABASE_USER
+
 if [[ -f "\$MSF_DATABASE_CONFIG" ]]; then
   print_and_log "\$MSF_DATABASE_CONFIG Exists."
+  msdb reinit
 elif [[ -d "\$MSF_DATABASE_CONFIG" ]]; then
   print_and_log "\$MSF_DATABASE_CONFIG is a Directory. Empty host-side binding, remove."
   rm -rf "\$MSF_DATABASE_CONFIG" && msfdb init
@@ -573,6 +593,7 @@ else
   print_and_log "MSF_DATABASE_CONFIG doesnt' exist yet, init."
   msfdb init
 fi
+
 if [[ -z \$MSFCONSOLE_START_CMD ]]; then
     print_and_log "NONINTERACTIVE: \$NONINTERACTIVE"
     print_and_log "MSFCONSOLE_START_CMD: \$MSFCONSOLE_START_CMD"
