@@ -2,6 +2,10 @@
 ---
 ## EZ-Config Ready-To-Go Dockerized Noninteractive MetaSploit Framework
 
+#### Project Goal: Super easy yet highly configurable metasploit that can be built and started on a wide variety of targets for a wide variety of scanning profiles
+
+#### STATE: WIP/TESTING
+
 #### NOTICE - *Please use this tool repsonsibly and in accoredance with the law.*
 
 ## USAGE
